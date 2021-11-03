@@ -64,9 +64,9 @@ static const char * defaultConfiguration = QUOTE(
 		"description" : "Rule evaluation interval in milliseconds",
 		"name" : "interval",
 		"type" : "integer",
-		"default": "10000",
+		"default": DEFAULT_INTERVAL,
 		"displayName" : "Evaluation interval in ms",
-		"order" : "3"
+		"order" : "2"
 	}
 });
 
@@ -114,8 +114,6 @@ PLUGIN_HANDLE plugin_init(const ConfigCategory& config)
 		handle = NULL;
 	}
 
-	handle->m_lastCheck = 0;
-
 	return (PLUGIN_HANDLE)handle;
 }
 
@@ -159,17 +157,15 @@ string plugin_triggers(PLUGIN_HANDLE handle)
 		  ++it)
 	{
 		ret += "{ \"asset\"  : \"" + (*it).first + "\" }";
-
 		if (std::next(it, 1) != triggers.end())
 		{
 			ret += ", ";
 		}
 	}
 
+	ret += " ]";
 	// Add Interval object, i.e.  {"Interval" : 1000}
-	ret += ", { \"Interval\" : " + std::to_string(rule->m_interval) + " }";
-
-	ret += " ] }";
+	ret += ", \"interval\" : " + std::to_string(rule->m_interval) + " }";
 
 	// Release lock
 	rule->unlockConfig();
@@ -412,4 +408,3 @@ bool WatchDog::configure(const ConfigCategory& config)
 
 	return true;
 }
-

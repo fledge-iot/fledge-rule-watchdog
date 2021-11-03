@@ -23,7 +23,9 @@ class Datapoint;
 class WatchDog: public BuiltinRule
 {
 	public:
-		WatchDog() {};
+		WatchDog() {
+			m_lastCheck = 0;
+		};
 		~WatchDog() {};
 
 		bool	configure(const ConfigCategory& config);
