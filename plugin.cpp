@@ -63,9 +63,10 @@ static const char * defaultConfiguration = QUOTE(
 	"asset" : {
 		"description" : "The asset name to check.",
 		"type" : "string",
-		"default" : "",
+		"default" : "_asset_1",
 		"displayName" : "Asset name",
-		"order" : "1"
+		"order" : "1",
+		"mandatory": "true"
 	},
 	"interval" : {
 		"description" : "Rule evaluation interval in milliseconds",
@@ -73,7 +74,8 @@ static const char * defaultConfiguration = QUOTE(
 		"type" : "integer",
 		"default": DEFAULT_INTERVAL,
 		"displayName" : "Evaluation interval in ms",
-		"order" : "2"
+		"order" : "2",
+		"mandatory": "true"
 	}
 });
 
