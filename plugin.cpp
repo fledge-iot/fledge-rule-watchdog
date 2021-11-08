@@ -21,6 +21,7 @@
 #define RULE_NAME "WatchDog"
 #define RULE_DESCRIPTION  "Generate a notification if asset data is not present in time interval."
 #define DEFAULT_INTERVAL "5000" // In milliseconds
+
 /**
  * Plugin configuration
  *
@@ -35,6 +36,12 @@
 			"default": "10000"
 		}
 	}
+ 
+ * Expression is composed of datapoint values within given asset name.
+ * And if the value of boolean expression toggles, then the notification is sent.
+ *
+ * NOTE:
+ * Datapoint names and values are dynamically added when "plugin_eval" is called
  */
 
 
@@ -123,6 +130,7 @@ PLUGIN_HANDLE plugin_init(const ConfigCategory& config)
 void plugin_shutdown(PLUGIN_HANDLE handle)
 {
 	WatchDog* rule = (WatchDog *)handle;
+
 	// Delete plugin handle
 	delete rule;
 }
@@ -165,14 +173,15 @@ string plugin_triggers(PLUGIN_HANDLE handle)
 
 	ret += " ]";
 	// Add Interval object, i.e.  {"Interval" : 1000}
-	ret += ", \"interval\" : " + std::to_string(rule->m_interval) + " }";
+	ret += ", \"interval\" : " + std::to_string(rule->getInterval());
+	ret += " }";
 
 	// Release lock
 	rule->unlockConfig();
 
-	Logger::getLogger()->error("%s plugin_triggers(): ret=%s",
-				RULE_NAME,
-				ret.c_str());
+	Logger::getLogger()->debug("%s plugin_triggers(): ret=%s",
+					RULE_NAME,
+					ret.c_str());
 
 	return ret;
 }
@@ -180,7 +189,8 @@ string plugin_triggers(PLUGIN_HANDLE handle)
 /**
  * Evaluate notification data received
  *
- *  Note: no assets found then return TRUE
+ *  If no assets found or asset time difference is not in time frame,
+ *  then return TRUE
  *
  * @param    assetValues	JSON string document
  *				with notification data.
@@ -190,125 +200,9 @@ string plugin_triggers(PLUGIN_HANDLE handle)
 bool plugin_eval(PLUGIN_HANDLE handle,
 		 const string& assetValues)
 {
-	bool ret = true;
-
 	WatchDog* rule = (WatchDog *)handle;
 
-	// Configuration fetch is protected by a lock
-	rule->lockConfig();
-
-	uint64_t interval = rule->m_interval;
-	uint64_t lastCheck = rule->m_lastCheck;
-	map<std::string, RuleTrigger *>& triggers = rule->getTriggers();
-
-	// Check first time run
-	if (lastCheck == 0)
-	{
-		Logger::getLogger()->debug("%s plugin_eval(): rule just started, " \
-					"returning false",
-					RULE_NAME);
-		struct timeval tv;
-		gettimeofday(&tv, NULL);
-		lastCheck = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-		rule->m_lastCheck = lastCheck;
-
-		// Just started, return false
-		ret = false;
-	}
-
-	// Release lock
-	rule->unlockConfig();
-
-	// Return false if m_lastCheck is not set
-	if (!ret)
-	{
-		return false;
-	}
-
-	Document doc;
-	doc.Parse(assetValues.c_str());
-	if (doc.HasParseError())
-	{
-		Logger::getLogger()->error("%s plugin_eval(): JSON parse error", RULE_NAME);
-		return false;
-	}
-
-	bool eval = false;
-
-	// Get system current time
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	uint64_t curr_time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-
-	// Calculate time difference
-	uint64_t diff_time = (curr_time - lastCheck);
-
-	// Check
-	if (diff_time >= interval)
-	{
-		// Get configuration lock
-		rule->lockConfig();
-
-		// Set current time
-		rule->m_lastCheck = curr_time;
-
-		// Release lock
-		rule->unlockConfig();
-
-		Logger::getLogger()->debug("%s plugin_eval(): diffTime=%ld, interval=%ld",
-				RULE_NAME,
-				diff_time,
-				interval);
-
-		// Iterate throgh all configured assets
-		// eval is TRUE if all assets are available in iput data
-		for (auto & t : triggers)
-		{
-			string assetName = t.first;
-
-			// Asset found, do not send notification
-			if (doc.HasMember(assetName.c_str()))
-			{
-				eval = false;
-			}
-			else
-			{
-				// Asset not found: mark notification
-				// Set evaluation
-				eval = true;
-
-				// Add evalution timestamp
-				string assetTimestamp = "timestamp_" + assetName;
-				if (doc.HasMember(assetTimestamp.c_str()))
-				{
-					const Value& assetTime = doc[assetTimestamp.c_str()];
-					double timestamp = assetTime.GetDouble();
-
-					// Get configuration lock
-					rule->lockConfig();
-
-					// Set evaluation timestamp
-					rule->setEvalTimestamp(timestamp);
-
-					// Release lock
-					rule->unlockConfig();
-				}
-			}
-		}
-	}
-
-	// eval is TRUE if at least one asset has not been found in iput data
-
-	// Get configuration lock
-	rule->lockConfig();
-
-	// Set final state
-	rule->setState(eval);
-
-	// Release lock
-	rule->unlockConfig();
-
-	return eval;
+	return rule->evalRule(assetValues);
 }
 
 /**
@@ -367,44 +261,3 @@ void plugin_reconfigure(PLUGIN_HANDLE handle,
 
 // End of extern "C"
 };
-
-/**
- * Configure the rule plugin
- *
- * @param    config	The configuration object to process
- */
-bool WatchDog::configure(const ConfigCategory& config)
-{
-	string assetName =  config.getValue("asset");
-	string interval =  config.getValue("interval");
-
-	if (assetName.empty())
-	{
-		Logger::getLogger()->warn("%s Empty values for 'asset'", RULE_NAME);
-
-		// Return true, so it can be configured later
-		return true;
-	}
-
-	if (interval.empty())
-	{
-		interval = DEFAULT_INTERVAL;
-	}
-
-	// Get configuration lock
-	this->lockConfig();
-
-	if (this->hasTriggers())
-	{       
-		this->removeTriggers();
-	}
-	this->addTrigger(assetName, NULL);
-
-	// Set interval
-	m_interval = atoi(interval.c_str());
-
-	// Release lock
-	this->unlockConfig();
-
-	return true;
-}

@@ -13,9 +13,11 @@
 #include <config_category.h>
 #include <rule_plugin.h>
 #include <builtin_rule.h>
-//#include <exprtk.hpp>
 
-class Datapoint;
+#define RULE_NAME "WatchDog"
+#define RULE_DESCRIPTION  "Generate a notification based on the last time of received data"
+#define DEFAULT_INTERVAL "5000" // In milliseconds
+#define TIMESTAMP_INTERVAL_NAME "timestamp__interval"
 
 /**
  * WatchDog class, derived from Notification BuiltinRule
@@ -24,7 +26,7 @@ class WatchDog: public BuiltinRule
 {
 	public:
 		WatchDog() {
-			m_lastCheck = 0;
+			m_firstCheck = true;
 		};
 		~WatchDog() {};
 
@@ -32,15 +34,13 @@ class WatchDog: public BuiltinRule
 		bool	evalAsset(const Value& assetValue);
 		void	lockConfig() { m_configMutex.lock(); };
 		void	unlockConfig() { m_configMutex.unlock(); };
-
-		//long	getInterval() { return m_interval; };
-
-	public:
-		uint64_t	m_lastCheck;
-		long		m_interval;
+		long	getInterval() { return m_interval; };
+		bool	evalRule(const std::string& assetValues);
 
 	private:
 		std::mutex	m_configMutex;
+		bool	m_firstCheck;
+		long	m_interval;
 };
 
 #endif
