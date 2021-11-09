@@ -75,7 +75,8 @@ static const char * defaultConfiguration = QUOTE(
 		"default": DEFAULT_INTERVAL,
 		"displayName" : "Evaluation interval in ms",
 		"order" : "2",
-		"mandatory": "true"
+		"mandatory": "true",
+		"minimum": "10"
 	}
 });
 
