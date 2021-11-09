@@ -18,8 +18,6 @@
 #include "version.h"
 #include "watchdog.h"
 
-#define RULE_NAME "WatchDog"
-#define RULE_DESCRIPTION  "Generate a notification if asset data is not present in time interval."
 #define DEFAULT_INTERVAL "5000" // In milliseconds
 
 /**
