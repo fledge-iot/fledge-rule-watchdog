@@ -61,7 +61,7 @@ static const char * defaultConfiguration = QUOTE(
 	"asset" : {
 		"description" : "The asset name to check.",
 		"type" : "string",
-		"default" : "_asset_1",
+		"default" : "asset_1",
 		"displayName" : "Asset name",
 		"order" : "1",
 		"mandatory": "true"
