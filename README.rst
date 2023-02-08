@@ -45,7 +45,7 @@ Example:
 
 .. code-block:: console
 
-  $ export NOTIFICATION_SERVICE_INCLUDE_DIRS=/home/ubuntu/source/fledge-service-notification/C/services/common/include
+  $ export NOTIFICATION_SERVICE_INCLUDE_DIRS=/home/ubuntu/source/fledge-service-notification/C/services/notification/include
 
 .. code-block:: console
 

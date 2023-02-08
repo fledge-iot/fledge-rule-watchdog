@@ -13,7 +13,7 @@ project(WatchDog)
 # then Fledge libraries and header files are pulled from FLEDGE_ROOT path.
 # The NOTIFICATION_SERVICE_INCLUDE_DIRS environment variable must point
 # to Fledge Notification server include files, example
-# export NOTIFICATION_SERVICE_INCLUDE_DIRS=/home/ubuntu/source/fledge-service-notification/C/services/common/include
+# export NOTIFICATION_SERVICE_INCLUDE_DIRS=/home/ubuntu/source/fledge-service-notification/C/services/notification/include
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -O3")
 
