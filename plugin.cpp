@@ -58,21 +58,39 @@ static const char * defaultConfiguration = QUOTE(
 		"displayName" : "Rule",
 		"readonly" : "true"
 	},
-	"asset" : {
-		"description" : "The asset name to check.",
-		"type" : "string",
-		"default" : "asset_1",
-		"displayName" : "Asset name",
-		"order" : "1",
+	"source" : {
+		"description" : "The source of the data to monitor.",
+		"type" : "enumeration",
+		"options" : [ "Readings", "Statistics", "Statistics Rate", "Audit"],
+		"default" : "Readings",
+		"displayName" : "Data Source",
+		"order" : "2",
 		"mandatory": "true"
 	},
+	"asset" : {
+		"description" : "The name of the asset, statistics or audit code to monitor.",
+		"type" : "string",
+		"default" : "asset_1",
+		"displayName" : "Name",
+		"order" : "3",
+		"mandatory": "true"
+	},
+	"datapoint" : {
+		"description" : "The name of the datapoint that must exit within the asset, or blank if any datapoint can be used.",
+		"type" : "string",
+		"default" : "",
+		"displayName" : "Datapoint",
+		"order" : "4",
+		"mandatory": "false",
+		"validity" : "source == \"Readings\""
+	},
 	"interval" : {
-		"description" : "Rule evaluation interval in milliseconds",
+		"description" : "Watchdog interval expressed in milliseconds. The rule fires if the defined data is not ibserved within this interval",
 		"name" : "interval",
 		"type" : "integer",
 		"default": DEFAULT_INTERVAL,
-		"displayName" : "Evaluation interval in ms",
-		"order" : "2",
+		"displayName" : "Watchdog Timer (ms)",
+		"order" : "5",
 		"mandatory": "true",
 		"minimum": "10"
 	}
@@ -160,12 +178,32 @@ string plugin_triggers(PLUGIN_HANDLE handle)
 	}
 
 	ret = "{\"triggers\" : [ ";
+	string source = rule->getSource();
 	std::map<std::string, RuleTrigger *> triggers = rule->getTriggers();
 	for (auto it = triggers.begin();
 		  it != triggers.end();
 		  ++it)
 	{
-		ret += "{ \"asset\"  : \"" + (*it).first + "\" }";
+		if (source.compare("Readings") == 0)
+		{
+			ret += "{ \"asset\"  : \"" + (*it).first + "\" }";
+		}
+		else if (source.compare("Statistics") == 0)
+		{
+			ret += "{ \"statistic\"  : \"" + (*it).first + "\" }";
+		}
+		else if (source.compare("Statistics Rate") == 0)
+		{
+			ret += "{ \"statisticRate\"  : \"" + (*it).first + "\" }";
+		}
+		else if (source.compare("Audit") == 0)
+		{
+			ret += "{ \"audit\"  : \"" + (*it).first + "\" }";
+		}
+		else
+		{
+			Logger::getLogger()->fatal("Incorrect data source defined %s", source.c_str());
+		}
 		if (std::next(it, 1) != triggers.end())
 		{
 			ret += ", ";
@@ -175,7 +213,8 @@ string plugin_triggers(PLUGIN_HANDLE handle)
 	ret += " ]";
 	// Add Interval object, i.e.  {"Interval" : 1000}
 	ret += ", \"interval\" : " + std::to_string(rule->getInterval());
-	ret += " }";
+	ret += ", \"evaluate\" : \"any\"";
+	ret += "}";
 
 	// Release lock
 	rule->unlockConfig();
