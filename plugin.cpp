@@ -51,13 +51,6 @@ static const char * defaultConfiguration = QUOTE(
 		"default" :  RULE_NAME,
 		"readonly" : "true"
 	},
-	"description" : {
-		"description" : "Generate a notification if asset data is not present in time interval.",
-		"type" : "string",
-		"default" : "Generate a notification if asset data is not present in time interval.",
-		"displayName" : "Rule",
-		"readonly" : "true"
-	},
 	"source" : {
 		"description" : "The source of the data to monitor.",
 		"type" : "enumeration",
