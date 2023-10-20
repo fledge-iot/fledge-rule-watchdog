@@ -21,6 +21,8 @@ bool WatchDog::configure(const ConfigCategory& config)
 {
 	string assetName =  config.getValue("asset");
 	string interval =  config.getValue("interval");
+	string source = config.getValue("source");
+	string datapoint = config.getValue("datapoint");
 
 	if (assetName.empty())
 	{
@@ -38,6 +40,9 @@ bool WatchDog::configure(const ConfigCategory& config)
 	// Get configuration lock
 	m_configMutex.lock();
 
+	m_source = source;
+	m_datapoint = datapoint;
+
 	if (this->hasTriggers())
 	{       
 		this->removeTriggers();
@@ -46,6 +51,7 @@ bool WatchDog::configure(const ConfigCategory& config)
 
 	// Set interval
 	m_interval = atoi(interval.c_str());
+
 
 	// Release lock
 	m_configMutex.unlock();
@@ -122,42 +128,47 @@ bool WatchDog::evalRule(const string& assetValues)
 	for (auto & t : triggers)
 	{
 		string assetName = t.first;
-
 		// Asset found ?
 		if (doc.HasMember(assetName.c_str()))
 		{
-			string assetTimestamp = "timestamp_" + assetName;
-
-			// Check asset timestamp
-			if (doc.HasMember(assetTimestamp.c_str()))
+			const Value& asset = doc[assetName.c_str()];
+			if (m_source.compare("Readings") || m_datapoint.empty() || asset.HasMember(m_datapoint.c_str()))
 			{
-				const Value& assetTime = doc[assetTimestamp.c_str()];
-				double timestamp = assetTime.GetDouble();
+				// We are either not looking at readings, no datapoint has been defined or the defined
+				// datapoint is in the reading
+				string assetTimestamp = "timestamp_" + assetName;
 
-				// Difference in microseconds:  rule trigger time - asset timestamp
-				// Note: time difference as double, then multiply it by 1000
-				double diffTime = (foundTime - timestamp) * 1000;
-
-				// Check
-				if (diffTime < interval)
+				// Check asset timestamp
+				if (doc.HasMember(assetTimestamp.c_str()))
 				{
-					// Asset time is good
-					eval = false;
+					const Value& assetTime = doc[assetTimestamp.c_str()];
+					double timestamp = assetTime.GetDouble();
+
+					// Difference in microseconds:  rule trigger time - asset timestamp
+					// Note: time difference as double, then multiply it by 1000
+					double diffTime = (foundTime - timestamp) * 1000;
+
+					// Check
+					if (diffTime < interval)
+					{
+						// Asset time is good
+						eval = false;
+					}
+					else
+					{
+						// Asset timestamp is too old: exit from loop
+						eval = true;
+
+						break;
+					}
 				}
 				else
 				{
-					// Asset timestamp is too old: exit from loop
+					// No asset timestamp: exit from loop
 					eval = true;
 
 					break;
 				}
-			}
-			else
-			{
-				// No asset timestamp: exit from loop
-				eval = true;
-
-				break;
 			}
 		}
 		else

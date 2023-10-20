@@ -30,17 +30,20 @@ class WatchDog: public BuiltinRule
 		};
 		~WatchDog() {};
 
-		bool	configure(const ConfigCategory& config);
-		bool	evalAsset(const Value& assetValue);
-		void	lockConfig() { m_configMutex.lock(); };
-		void	unlockConfig() { m_configMutex.unlock(); };
-		long	getInterval() { return m_interval; };
-		bool	evalRule(const std::string& assetValues);
+		bool		configure(const ConfigCategory& config);
+		bool		evalAsset(const Value& assetValue);
+		void		lockConfig() { m_configMutex.lock(); };
+		void		unlockConfig() { m_configMutex.unlock(); };
+		long		getInterval() { return m_interval; };
+		bool		evalRule(const std::string& assetValues);
+		std::string	getSource() { return m_source; };
 
 	private:
 		std::mutex	m_configMutex;
-		bool	m_firstCheck;
-		long	m_interval;
+		bool		m_firstCheck;
+		long		m_interval;
+		std::string	m_source;
+		std::string	m_datapoint;
 };
 
 #endif
